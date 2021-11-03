@@ -12,21 +12,22 @@ using Volo.Abp.PermissionManagement.EntityFrameworkCore;
 using Volo.Abp.SettingManagement.EntityFrameworkCore;
 using Volo.Abp.TenantManagement;
 using Volo.Abp.TenantManagement.EntityFrameworkCore;
+using Acme.BookStore.Books;
+using Volo.Abp.EntityFrameworkCore.Modeling;
 
 namespace Acme.BookStore.EntityFrameworkCore
 {
     [ReplaceDbContext(typeof(IIdentityDbContext))]
     [ReplaceDbContext(typeof(ITenantManagementDbContext))]
     [ConnectionStringName("Default")]
-    public class BookStoreDbContext : 
-        AbpDbContext<BookStoreDbContext>,
-        IIdentityDbContext,
-        ITenantManagementDbContext
+    public class BookStoreDbContext : AbpDbContext<BookStoreDbContext>, IIdentityDbContext, ITenantManagementDbContext
     {
         /* Add DbSet properties for your Aggregate Roots / Entities here. */
-        
+
+        public DbSet<Book> Books { get; set; }
+
         #region Entities from the modules
-        
+
         /* Notice: We only implemented IIdentityDbContext and ITenantManagementDbContext
          * and replaced them for this DbContext. This allows you to perform JOIN
          * queries for the entities of these modules over the repositories easily. You
@@ -37,7 +38,7 @@ namespace Acme.BookStore.EntityFrameworkCore
          * More info: Replacing a DbContext of a module ensures that the related module
          * uses this DbContext on runtime. Otherwise, it will use its own DbContext class.
          */
-        
+
         //Identity
         public DbSet<IdentityUser> Users { get; set; }
         public DbSet<IdentityRole> Roles { get; set; }
@@ -52,10 +53,9 @@ namespace Acme.BookStore.EntityFrameworkCore
 
         #endregion
         
-        public BookStoreDbContext(DbContextOptions<BookStoreDbContext> options)
-            : base(options)
+        public BookStoreDbContext(DbContextOptions<BookStoreDbContext> options) : base(options)
         {
-
+            //Database.Migrate();
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -81,6 +81,19 @@ namespace Acme.BookStore.EntityFrameworkCore
             //    b.ConfigureByConvention(); //auto configure for the base class props
             //    //...
             //});
+
+
+            //Configurando Model Books
+            builder.Entity<Book>(b =>
+            {
+                b.ToTable(BookStoreConsts.DbTablePrefix + "Books", BookStoreConsts.DbSchema);
+                b.ConfigureByConvention(); //auto configure for the base class props               
+                b.Property(x => x.Name).IsRequired().HasMaxLength(128);
+                b.HasKey(b => b.Codigo);
+                b.Property(b => b.Codigo).ValueGeneratedOnAdd();
+            });
+
+            //builder.Entity<Book>().Property(b => b.ID).ValueGeneratedOnAdd();
         }
     }
 }
